@@ -29,6 +29,11 @@ write_reward 0.000
 trap on_exit EXIT
 trap on_signal INT TERM HUP
 
+python3 -m pip install --no-cache-dir --no-index --find-links=/opt/wheels pytest==8.4.1 > /tmp/pytest-install.log 2>&1 || {
+    cat /tmp/pytest-install.log
+    exit 1
+}
+
 set +e
 timeout --signal=TERM --kill-after=10s 300s python3 -u -m pytest -v -p no:cacheprovider /tests/test_outputs.py > "$TEST_LOG" 2>&1
 rc=$?

@@ -7,6 +7,7 @@ import re
 import shutil
 import sys
 import tempfile
+import traceback
 from fractions import Fraction
 
 
@@ -400,7 +401,11 @@ def main(argv):
         batch = read_batch(argv[1])
         certificate_bytes, ledger_bytes = build_outputs(batch, argv[3])
         publish(argv[2], argv[3], certificate_bytes, ledger_bytes)
+    except ReviewError:
+        sys.stderr.write("运行拒收: BAD_INPUT\n")
+        return 1
     except Exception:
+        traceback.print_exc()
         return 1
     return 0
 
