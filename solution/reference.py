@@ -109,7 +109,7 @@ def validate_sample(sample):
     if not is_plain_int(digits) or not 1 <= digits <= 15:
         raise ReviewError("bad significant digits")
     limit = sample["denominator_limit"]
-    if not is_plain_int(limit) or not 1 <= limit <= 100000:
+    if not is_plain_int(limit) or not 1 <= limit <= 10**12:
         raise ReviewError("bad denominator limit")
 
 
@@ -123,6 +123,8 @@ def read_batch(path):
     samples = batch["samples"]
     if not isinstance(samples, list) or not samples:
         raise ReviewError("empty samples")
+    if len(samples) > 2000:
+        raise ReviewError("too many samples")
     seen = set()
     for sample in samples:
         validate_sample(sample)
@@ -153,45 +155,62 @@ def reading_interval(sample):
     return lo, hi, value > 0
 
 
+def simplest_strict(lo, hi):
+    """Fraction with the smallest denominator strictly inside (lo, hi)."""
+    if lo < 0 < hi:
+        return Fraction(0)
+    if hi <= 0:
+        return -simplest_strict(-hi, -lo)
+    whole = lo.numerator // lo.denominator
+    if Fraction(whole + 1) < hi:
+        return Fraction(whole + 1)
+    left = lo - whole
+    right = hi - whole
+    if left == 0:
+        reciprocal = 1 / right
+        return Fraction(whole) + Fraction(
+            1, reciprocal.numerator // reciprocal.denominator + 1
+        )
+    inner = simplest_strict(1 / right, 1 / left)
+    return Fraction(whole) + 1 / inner
+
+
 def reconstruct(sample):
     lo, hi, positive = reading_interval(sample)
     include_lo = positive
     include_hi = not positive
-    for denominator in range(1, sample["denominator_limit"] + 1):
-        scaled_lo = lo * denominator
-        scaled_hi = hi * denominator
-        first = math.ceil(scaled_lo)
-        if not include_lo and scaled_lo.denominator == 1:
-            first += 1
-        last = math.floor(scaled_hi)
-        if not include_hi and scaled_hi.denominator == 1:
-            last -= 1
-        candidates = [
-            Fraction(numerator, denominator)
-            for numerator in range(first, last + 1)
-            if math.gcd(abs(numerator), denominator) == 1
-        ]
-        if not candidates:
-            continue
-        if len(candidates) == 1:
-            status = "used"
-        else:
-            status = "ambiguous"
-        return {
-            "status": status,
-            "lo": lo,
-            "hi": hi,
-            "include_lo": include_lo,
-            "include_hi": include_hi,
-            "denominator": denominator,
-            "candidates": sorted(candidates),
-        }
-    return {
-        "status": "none",
+    base = {
         "lo": lo,
         "hi": hi,
         "include_lo": include_lo,
         "include_hi": include_hi,
+    }
+    denominators = []
+    if include_lo:
+        denominators.append(lo.denominator)
+    if include_hi:
+        denominators.append(hi.denominator)
+    denominators.append(simplest_strict(lo, hi).denominator)
+    denominator = min(denominators)
+    if denominator > sample["denominator_limit"]:
+        return {"status": "none", **base}
+    scaled_lo = lo * denominator
+    scaled_hi = hi * denominator
+    first = math.ceil(scaled_lo) if include_lo else math.floor(scaled_lo) + 1
+    last = math.floor(scaled_hi) if include_hi else math.ceil(scaled_hi) - 1
+    candidates = [
+        Fraction(numerator, denominator)
+        for numerator in range(first, last + 1)
+        if math.gcd(abs(numerator), denominator) == 1
+    ]
+    if not candidates:
+        return {"status": "none", **base}
+    status = "used" if len(candidates) == 1 else "ambiguous"
+    return {
+        "status": status,
+        **base,
+        "denominator": denominator,
+        "candidates": candidates,
     }
 
 

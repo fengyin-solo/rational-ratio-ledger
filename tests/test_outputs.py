@@ -3,8 +3,10 @@
 import hashlib
 import json
 import os
+import random
 import subprocess
 import sys
+import time
 from fractions import Fraction
 from pathlib import Path
 
@@ -82,7 +84,7 @@ def _unexpected_entries(directory, allowed):
 
 
 def test_used_sample_has_exact_certificate_shape_and_minimum_denominator(tmp_path):
-    """`used` 表示最小分母只对应一个分数。"""
+    """「`used` 表示最小分母只对应一个分数，」"""
     finished, certificate_path, ledger_path = _run(tmp_path, _batch())
     certificate = _certificate(certificate_path)
     assert finished.returncode == 0
@@ -103,7 +105,7 @@ def test_intro_example_uses_smallest_denominator(tmp_path):
 
 
 def test_original_recipe_batch_rerun_is_stable(tmp_path):
-    """夜班用它回填后，台账里还重复记过同一张单子。"""
+    """「夜班用它回填后，台账里还重复记过同一张单子。」"""
     batch = _batch(batch_id="R260917-06", samples=[_sample(sample_id="M-2235")])
     finished_first, _, ledger_path = _run(tmp_path, batch, "original")
     first_bytes = ledger_path.read_bytes()
@@ -116,7 +118,7 @@ def test_original_recipe_batch_rerun_is_stable(tmp_path):
 
 
 def test_problem_description_cases_are_not_collapsed(tmp_path):
-    """遇到尾数是半格边界、负数或者同一批里有并列解释时，它就会给出互相打架的结果。"""
+    """「遇到尾数是半格边界、负数或者同一批里有并列解释时，它就会给出互相打架的结果。」"""
     samples = [
         _sample(sample_id="M-2219", display="0.1255", digits=3, limit=8),
         _sample(sample_id="M-2220", display="-0.1255", digits=3, limit=8),
@@ -133,7 +135,7 @@ def test_problem_description_cases_are_not_collapsed(tmp_path):
 
 
 def test_certificate_uses_compact_json_and_single_trailing_newline(tmp_path):
-    """证书要写成 UTF-8 的单行 JSON；键和值之间、相邻值之间都不留空格，文件最后只保留一个换行。"""
+    """「证书要写成 UTF-8 的单行 JSON；键和值之间、相邻值之间都不留空格，文件最后只保留一个换行。」"""
     finished, certificate_path, _ = _run(tmp_path, _batch())
     raw = certificate_path.read_bytes()
     assert finished.returncode == 0
@@ -144,7 +146,7 @@ def test_certificate_uses_compact_json_and_single_trailing_newline(tmp_path):
 
 
 def test_certificate_has_exactly_one_final_newline(tmp_path):
-    """证书要写成 UTF-8 的单行 JSON；键和值之间、相邻值之间都不留空格，文件最后只保留一个换行。"""
+    """「证书要写成 UTF-8 的单行 JSON；键和值之间、相邻值之间都不留空格，文件最后只保留一个换行。」"""
     finished, certificate_path, _ = _run(tmp_path, _batch(), "newline")
     raw = certificate_path.read_bytes()
     assert finished.returncode == 0
@@ -183,7 +185,7 @@ def test_summary_reports_counts_and_key_order(tmp_path):
 
 
 def test_summary_ledger_appended_counts_only_new_lines(tmp_path):
-    """这个字段只数这次新写进台账的几行。"""
+    """「这个字段只数这次新写进台账的几行。」"""
     batch = _batch(batch_id="R260917-09", samples=[_sample()])
     finished_first, certificate_path, ledger_path = _run(tmp_path, batch, "append-count")
     first_summary = _certificate(certificate_path)["summary"]
@@ -226,7 +228,7 @@ def test_none_entry_has_no_result_fields(tmp_path):
 
 
 def test_positive_lower_endpoint_is_included(tmp_path):
-    """正数的下边界算在区间内、上边界不算。"""
+    """「正数的下边界算在区间内、上边界不算；」"""
     sample = _sample(display="0.1255", digits=3, limit=8)
     finished, certificate_path, _ = _run(tmp_path, _batch(samples=[sample]), "positive-lower")
     item = _certificate(certificate_path)["samples"][0]
@@ -247,7 +249,7 @@ def test_reading_step_uses_half_of_last_decimal_place(tmp_path):
 
 
 def test_exact_decimal_endpoint_comparison_keeps_boundary_fraction(tmp_path):
-    """这里的所有边界都要按十进制原值精确比较，不能先转成二进制浮点数。"""
+    """「这里的所有边界都要按十进制原值精确比较，不能先转成二进制浮点数。」"""
     sample = _sample(display="0.1255", digits=3, limit=8)
     finished, certificate_path, _ = _run(tmp_path, _batch(samples=[sample]), "exact-endpoint")
     item = _certificate(certificate_path)["samples"][0]
@@ -256,7 +258,7 @@ def test_exact_decimal_endpoint_comparison_keeps_boundary_fraction(tmp_path):
 
 
 def test_interval_endpoint_strings_are_reduced_fractions(tmp_path):
-    """两个端点保存为最简有理数的文本：整数就直接写，其余写成 `分子/分母`，分母一律为正。"""
+    """「两个端点保存为最简有理数的文本：整数就直接写，其余写成 `分子/分母`，分母一律为正。」"""
     sample = _sample(display="0.1255", digits=3, limit=8)
     finished, certificate_path, _ = _run(tmp_path, _batch(samples=[sample]), "reduced")
     interval = _interval(_certificate(certificate_path))
@@ -266,7 +268,7 @@ def test_interval_endpoint_strings_are_reduced_fractions(tmp_path):
 
 
 def test_positive_upper_endpoint_is_excluded(tmp_path):
-    """正数的下边界算在区间内、上边界不算。"""
+    """「正数的下边界算在区间内、上边界不算；」"""
     sample = _sample(display="0.1245", digits=3, limit=8)
     finished, certificate_path, _ = _run(tmp_path, _batch(samples=[sample]), "positive-upper")
     item = _certificate(certificate_path)["samples"][0]
@@ -276,7 +278,7 @@ def test_positive_upper_endpoint_is_excluded(tmp_path):
 
 
 def test_negative_upper_endpoint_is_included(tmp_path):
-    """负数的上边界算在区间内、下边界不算。"""
+    """「负数的上边界算在区间内、下边界不算。」"""
     sample = _sample(display="-0.1255", digits=3, limit=8)
     finished, certificate_path, _ = _run(tmp_path, _batch(samples=[sample]), "negative-upper")
     item = _certificate(certificate_path)["samples"][0]
@@ -287,7 +289,7 @@ def test_negative_upper_endpoint_is_included(tmp_path):
 
 
 def test_negative_lower_endpoint_is_excluded(tmp_path):
-    """负数的上边界算在区间内、下边界不算。"""
+    """「负数的上边界算在区间内、下边界不算。」"""
     sample = _sample(display="-0.1245", digits=3, limit=8)
     finished, certificate_path, _ = _run(tmp_path, _batch(samples=[sample]), "negative-lower")
     item = _certificate(certificate_path)["samples"][0]
@@ -311,7 +313,7 @@ def test_ambiguous_reports_all_candidates_at_minimum_denominator(tmp_path):
 
 
 def test_no_candidate_is_reported_as_none(tmp_path):
-    """`none` 表示分母上限内没有候选。"""
+    """「`none` 表示分母上限内没有候选。」"""
     sample = _sample(display="0.1", digits=1, limit=2)
     finished, certificate_path, ledger_path = _run(tmp_path, _batch(samples=[sample]), "none")
     item = _certificate(certificate_path)["samples"][0]
@@ -335,6 +337,95 @@ def test_denominator_limit_is_inclusive(tmp_path):
     assert finished_below.returncode == 0
     assert _certificate(certificate_at)["samples"][0]["fraction"] == "1/7"
     assert _certificate(certificate_below)["samples"][0]["status"] == "none"
+
+
+def test_huge_limit_still_reports_smallest_denominator(tmp_path):
+    """上限开到一万亿也不改变“最小分母”这个判决，`0.1429` 仍然回填 `1/7`。"""
+    sample = _sample(display="0.1429", digits=4, limit=10**12)
+    finished, certificate_path, _ = _run(tmp_path, _batch(samples=[sample]), "huge-limit")
+    item = _certificate(certificate_path)["samples"][0]
+    assert finished.returncode == 0
+    assert item["status"] == "used"
+    assert item["fraction"] == "1/7"
+    assert item["denominator"] == 7
+
+
+def test_precise_reading_recovers_large_denominator(tmp_path):
+    """「配方库升级以后，读数可以细到十五位有效数字，分母上限会开到一万亿，单批最多两千条。」"""
+    sample = _sample(display="0.00000123456789012", digits=15, limit=10**12)
+    finished, certificate_path, ledger_path = _run(tmp_path, _batch(samples=[sample]), "precise")
+    item = _certificate(certificate_path)["samples"][0]
+    assert finished.returncode == 0
+    assert item["status"] == "used"
+    assert item["denominator"] == 4220910038
+    assert item["fraction"] == "5211/4220910038"
+    assert _records(ledger_path)[0]["fraction"] == "5211/4220910038"
+
+
+def test_precise_reading_without_candidate_stays_none(tmp_path):
+    """「区间里没有任何这样的分数时，样本记为没有候选。」"""
+    sample = _sample(display="9.99999999999999", digits=15, limit=10**12)
+    finished, certificate_path, _ = _run(tmp_path, _batch(samples=[sample]), "precise-none")
+    item = _certificate(certificate_path)["samples"][0]
+    assert finished.returncode == 0
+    assert item["status"] == "none"
+    assert set(item) == {"sample_id", "status", "interval"}
+
+
+def test_negative_precise_reading_keeps_sign_and_denominator(tmp_path):
+    """「正数的下边界算在区间内、上边界不算；负数的上边界算在区间内、下边界不算。」"""
+    sample = _sample(display="-0.577215664901533", digits=15, limit=10**12)
+    finished, certificate_path, _ = _run(tmp_path, _batch(samples=[sample]), "precise-negative")
+    item = _certificate(certificate_path)["samples"][0]
+    assert finished.returncode == 0
+    assert item["status"] == "used"
+    assert item["denominator"] == 15700603
+    assert item["fraction"] == "-9062634/15700603"
+
+
+def test_large_batch_finishes_within_the_shift_window(tmp_path):
+    """「夜班要求整批复核在普通工作站上 60 秒内跑完：上限只是判决边界，不能把它当成循环次数，逐个分母试过去的写法撑不住这样的批次。」"""
+    rng = random.Random(20261019)
+    samples = []
+    for index in range(300):
+        whole = rng.randint(1, 9)
+        fraction_digits = "".join(str(rng.randint(0, 9)) for _ in range(14))
+        sign = "-" if rng.random() < 0.25 else ""
+        samples.append(
+            _sample(
+                sample_id=f"M-S{index + 1:04d}",
+                display=f"{sign}{whole}.{fraction_digits}",
+                digits=15,
+                limit=10**12,
+            )
+        )
+    started = time.monotonic()
+    finished, certificate_path, ledger_path = _run(
+        tmp_path, _batch(batch_id="R261019-30", samples=samples), "large-batch"
+    )
+    elapsed = time.monotonic() - started
+    certificate = _certificate(certificate_path)
+    assert finished.returncode == 0
+    assert elapsed < 40
+    assert certificate["summary"]["total"] == 300
+    assert certificate["summary"]["used"] == 300
+    assert certificate["summary"]["ledger_appended"] == 300
+    assert certificate["samples"][0]["fraction"] == "49494709/8063859"
+    assert certificate["samples"][7]["fraction"] == "-17000876/11174169"
+    assert certificate["samples"][299]["fraction"] == "55915120/6258909"
+    assert len(_records(ledger_path)) == 300
+
+
+def test_batch_size_cap_is_enforced(tmp_path):
+    """「`samples` 至少有一条、最多两千条，顺序就是收样顺序。」"""
+    samples = [
+        _sample(sample_id=f"M-C{index:04d}", display="0.1429") for index in range(2001)
+    ]
+    finished, certificate_path, ledger_path = _run(tmp_path, _batch(samples=samples), "too-many")
+    assert finished.returncode == 1
+    assert finished.stderr.startswith("运行拒收: BAD_INPUT")
+    assert not certificate_path.exists()
+    assert not ledger_path.exists()
 
 
 def test_same_batch_rerun_is_idempotent(tmp_path):
@@ -444,7 +535,7 @@ def test_measurement_digest_changes_with_significant_digits(tmp_path):
     ],
 )
 def test_invalid_display_is_rejected(tmp_path, display, case_id):
-    """不能有正号、指数、`NaN`、无穷、首尾空白或孤零零的小数点；小数点前后都必须有数字，读数不能是零。"""
+    """「不能有正号、指数、`NaN`、无穷、首尾空白或孤零零的小数点；小数点前后都必须有数字，读数不能是零。」"""
     print(f"CASE {case_id}")
     sample = _sample(display=display)
     finished, certificate_path, ledger_path = _run(
@@ -479,13 +570,13 @@ def test_significant_digits_bounds(tmp_path, digits, case_id, expected_rc):
     "limit,case_id,expected_rc",
     [
         (0, "LIMIT-01", 1),
-        (100001, "LIMIT-02", 1),
+        (10**12 + 1, "LIMIT-02", 1),
         (True, "LIMIT-03", 1),
-        (100000, "LIMIT-04", 0),
+        (10**12, "LIMIT-04", 0),
     ],
 )
 def test_denominator_limit_bounds(tmp_path, limit, case_id, expected_rc):
-    """`denominator_limit` 是 1 到 100000 的整数，布尔值不算整数。"""
+    """`denominator_limit` 是 1 到 1000000000000 的整数，布尔值不算整数。"""
     print(f"CASE {case_id}")
     sample = _sample(limit=limit)
     finished, certificate_path, _ = _run(
@@ -505,7 +596,7 @@ def test_duplicate_sample_id_is_rejected(tmp_path):
 
 
 def test_duplicate_json_key_is_rejected(tmp_path):
-    """JSON 里有重复键。"""
+    """「JSON 里有重复键、」"""
     raw = '{"batch_id":"DUPKEY","batch_id":"DUPKEY-2","samples":[]}'
     batch_path = tmp_path / "duplicate.json"
     batch_path.write_text(raw, encoding="utf-8")
@@ -566,7 +657,7 @@ def test_batch_id_with_surrounding_space_is_rejected(tmp_path):
 
 
 def test_display_magnitude_boundary_is_enforced(tmp_path):
-    """绝对值不能超过 1000。"""
+    """「绝对值不能超过 1000。」"""
     at_bound = _sample(display="1000", digits=1, limit=1)
     above_bound = _sample(sample_id="M-2228", display="1000.1", digits=1, limit=1)
     finished_at, certificate_at, _ = _run(
@@ -582,7 +673,7 @@ def test_display_magnitude_boundary_is_enforced(tmp_path):
 
 
 def test_wrong_argument_count_is_rejected(tmp_path):
-    """三个位置参数少一个或多一个都按用法错误结束，退出码非零。"""
+    """「三个位置参数少一个或多一个都按用法错误结束，退出码非零。」"""
     batch_path = _write_batch(tmp_path / "args.json", _batch())
     short = subprocess.run(
         [sys.executable, str(APP), str(batch_path)],
@@ -608,7 +699,7 @@ def test_wrong_argument_count_is_rejected(tmp_path):
 
 
 def test_changed_measurement_for_existing_key_is_rejected(tmp_path):
-    """同一对键出现不同测量摘要时，说明同一张单子被改过，整次复核退回。"""
+    """「同一对键出现不同测量摘要时，说明同一张单子被改过，整次复核退回。」"""
     first = _batch(batch_id="R260917-20", samples=[_sample(display="0.1429")])
     changed = _batch(batch_id="R260917-20", samples=[_sample(display="0.2857")])
     finished_first, certificate_path, ledger_path = _run(tmp_path, first, "changed")
@@ -680,6 +771,7 @@ def test_bad_ledger_digest_is_rejected(tmp_path):
 
 
 def test_zero_denominator_in_ledger_is_rejected(tmp_path):
+    """「台账里出现坏行、重复键、摘要格式不对、」"""
     first = _batch(batch_id="R260918-15", samples=[_sample(sample_id="M-2234")])
     finished_first, certificate_path, ledger_path = _run(tmp_path, first, "case-26")
     record = _records(ledger_path)[0]
@@ -693,12 +785,12 @@ def test_zero_denominator_in_ledger_is_rejected(tmp_path):
     assert finished_first.returncode == 0
     assert finished_second.returncode == 1
     assert finished_second.stderr.startswith("运行拒收: BAD_INPUT")
-    assert "Traceback" not in finished_second.stderr
+    assert "traceback" not in finished_second.stderr.lower()
     assert certificate_path.read_bytes() == certificate_before
 
 
 def test_invalid_batch_keeps_existing_certificate_and_ledger(tmp_path):
-    """退出时证书和台账都保持调用前的字节，目录里不能留下半截新文件或临时文件。"""
+    """「退出时证书和台账都保持调用前的字节，目录里不能留下半截新文件或临时文件。」"""
     valid = _batch(batch_id="R260918-08", samples=[_sample()])
     finished_valid, certificate_path, ledger_path = _run(tmp_path, valid, "keep")
     certificate_before = _copy_bytes(certificate_path)
@@ -728,7 +820,7 @@ def test_invalid_batch_keeps_existing_certificate_and_ledger(tmp_path):
 
 
 def test_ledger_target_directory_is_rejected_without_replacing_certificate(tmp_path):
-    """任何校验、写入或替换失败时，两个文件都保持调用前的字节。"""
+    """「任何校验、写入或替换失败时，两个文件都保持调用前的字节。」"""
     certificate_path = tmp_path / "target.cert.json"
     ledger_path = tmp_path / "target.ledger.jsonl"
     certificate_path.write_bytes(b"old-certificate\n")
@@ -750,7 +842,7 @@ def test_ledger_target_directory_is_rejected_without_replacing_certificate(tmp_p
 
 
 def test_successful_publish_leaves_no_temporary_files(tmp_path):
-    """目录里不能留下半截新文件或临时文件。"""
+    """「目录里不能留下半截新文件或临时文件。」"""
     finished, certificate_path, ledger_path = _run(
         tmp_path, _batch(batch_id="R260918-15", samples=[_sample()]), "clean-temp"
     )
@@ -764,7 +856,7 @@ def test_successful_publish_leaves_no_temporary_files(tmp_path):
 
 
 def test_failed_publish_leaves_no_temporary_files(tmp_path):
-    """退出时证书和台账都保持调用前的字节，目录里不能留下半截新文件或临时文件。"""
+    """「退出时证书和台账都保持调用前的字节，目录里不能留下半截新文件或临时文件。」"""
     certificate_path = tmp_path / "failed.cert.json"
     ledger_path = tmp_path / "failed.ledger.jsonl"
     certificate_path.write_bytes(b"old\n")
@@ -787,7 +879,7 @@ def test_failed_publish_leaves_no_temporary_files(tmp_path):
 
 
 def test_successful_publish_writes_certificate_and_ledger_together(tmp_path):
-    """两份新内容都准备好之后才替换旧文件。"""
+    """「两份新内容都准备好之后才替换旧文件；」"""
     finished, certificate_path, ledger_path = _run(
         tmp_path, _batch(batch_id="R260918-13", samples=[_sample()]), "together"
     )

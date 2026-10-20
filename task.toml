@@ -7,7 +7,7 @@ description = "Reconstruct bounded-denominator material ratios from finite-preci
 keywords = ["exact-rational", "continued-fraction", "interval", "ledger"]
 
 [agent]
-timeout_sec = 1800
+timeout_sec = 3600
 
 [environment]
 build_timeout_sec = 600
@@ -15,7 +15,7 @@ cpus = 2
 memory_mb = 2048
 storage_mb = 4096
 gpus = 0
-allow_internet = false
+allow_internet = true
 
 [verifier]
 timeout_sec = 600
